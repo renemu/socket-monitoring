@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monitoring Suhu</title>
+  <link rel="icon" href="https://cdn-icons-png.freepik.com/512/9011/9011218.png" type="image/x-icon" />
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+      color: #00bcd4;
+    }
+
+    #output {
+      background-color: #1e1e1e;
+      border-left: 6px solid #00bcd4;
+      padding: 16px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      font-size: 1.2em;
+      white-space: pre-line;
+    }
+
+    #clientList {
+      list-style: none;
+      padding: 0;
+    }
+
+    #clientList li {
+      background: #2a2a2a;
+      margin: 5px 0;
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+
+    .status {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .status.connected {
+      color: #4caf50;
+    }
+
+    .status.disconnected {
+      color: #f44336;
+    }
+
+    button {
+      background-color: #00bcd4;
+      border: none;
+      padding: 10px 16px;
+      color: white;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background-color: #0097a7;
+    }
+
+    #buttonContainer {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Monitoring Suhu</h1>
+  <div class="status disconnected" id="status">🔌 Belum terhubung</div>
+  <div id="output">Menunggu data suhu...</div>
+
+  <h2>👥 Client Terhubung:</h2>
+  <ul id="clientList"></ul>
+
+  <div id="buttonContainer">
+    <button id="disconnectBtn" style="display:none;">🔌 Disconnect</button>
+    <button id="connectBtn" style="display:none;">🔌 Connect</button>
+  </div>
+
+  <script>
+    let socket;
+    let clientName;
+
+    const statusEl = document.getElementById("status");
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    const connectBtn = document.getElementById("connectBtn");
+
+    function setupSocket() {
+      socket = io();
+
+      socket.on("connect", () => {
+        if (!clientName) {
+          clientName = prompt("Masukkan nama client:", "Client A") || socket.id;
+        }
+        socket.emit("register", clientName);
+
+        statusEl.textContent = "🟢 Terhubung ke server";
+        statusEl.classList.remove("disconnected");
+        statusEl.classList.add("connected");
+
+        disconnectBtn.style.display = "inline-block";
+        connectBtn.style.display = "none";
+      });
+
+      socket.on("suhu", (data) => {
+        document.getElementById("output").innerText =
+          `🌡️ Suhu: ${data.suhu}°C\n🕒 Waktu: ${new Date(data.waktu).toLocaleString()}`;
+      });
+
+      socket.on("client-list", (clients) => {
+        const listElement = document.getElementById("clientList");
+        listElement.innerHTML = "";
+        clients.forEach((client) => {
+          const li = document.createElement("li");
+          li.textContent = client.name;
+          listElement.appendChild(li);
+        });
+      });
+
+      socket.on("disconnect", () => {
+        statusEl.textContent = "🔌 Terputus dari server";
+        statusEl.classList.remove("connected");
+        statusEl.classList.add("disconnected");
+
+        disconnectBtn.style.display = "none";
+        connectBtn.style.display = "inline-block";
+      });
+    }
+
+    // Inisialisasi awal
+    setupSocket();
+
+    disconnectBtn.addEventListener("click", () => {
+      socket.disconnect();
+    });
+
+    connectBtn.addEventListener("click", () => {
+      setupSocket(); // buat koneksi baru
+    });
+  </script>
+</body>
+</html>
