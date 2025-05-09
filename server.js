@@ -6,6 +6,7 @@ const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+const date = new Date().toISOString();
 const io = socketIo(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
@@ -32,7 +33,7 @@ io.on('connection', (socket) => {
 
   const interval = setInterval(() => {
     const suhu = generateRandomTemperature();
-    socket.emit('suhu', { suhu, waktu: new Date().toISOString() });
+    socket.emit('suhu', { suhu, waktu: date });
   }, 2000);
 
   socket.on('disconnect', () => {
@@ -46,6 +47,26 @@ io.on('connection', (socket) => {
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
+
+// Endpoint API untuk mengirim data suhu
+app.get('/api/suhu', (req, res) => {
+    const suhu = generateRandomTemperature();
+    res.json({ suhu, waktu: date });
+  });
+
+// Endpoint API untuk menerima data suhu dari ESP32
+app.post('/api/suhu', express.json(), (req, res) => {
+    const { suhu, waktu } = req.body;
+  
+    if (!suhu) {
+      return res.status(400).json({ error: 'Temperature is empty' });
+    }
+    
+    console.log(`Data suhu diterima: ${suhu}°C pada ${waktu || date}`);
+    io.emit('suhu-update', { suhu, waktu }); // Broadcast ke semua client melalui WebSocket
+    res.status(200).json({ message: 'Data suhu berhasil diterima', suhu: `Data suhu diterima: ${suhu}°C pada ${waktu || date}` });
+  });
+
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
