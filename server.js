@@ -1,3 +1,5 @@
+require('dotenv').config(); // load .env file
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -45,7 +47,8 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
 server.listen(PORT, () => {
-  console.log(`Server socket berjalan di http://192.168.10.143:${PORT}`);
+  console.log(`Server socket berjalan di http://${HOST}:${PORT}`);
 });
